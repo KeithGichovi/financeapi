@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{{ super() }}
+{% block content %}
+    <div class="container py-5">
+        <form action="{{ url_for('index') }}" method="post">
+            {{ form.csrf_token }}
+            {{ form.symbol.label(class="form-label mb-3") }}
+            {{ form.symbol(class="form-control mb-3") }}
+            {{ form.submit(class="btn btn-primary mt-2") }}
+        </form>
+    </div>
+    {% if response %}
+        <!-----response data goes here when it is processed into graphs--->
+        <div class="row">
+            <div class="col-md-4 px-3">
+                <canvas class="w-auto h-auto" id="revenue-chart"></canvas>
+            </div>
+            <div class="col-md-4 px-3">
+                <canvas class="w-auto h-auto" id="donut-chart"></canvas>
+            </div>
+            <div class=" col-md-4 px-3">
+                <canvas class="w-auto h-auto" id="donut-chart_2"></canvas>
+            </div>
+        </div>
+        <script>
+
+                const jsonData = {{ response[0]|tojson }}; //json data
+
+                const revenueCanvas = document.getElementById('revenue-chart'); //canvas id
+                const revenueContext = revenueCanvas.getContext('2d'); //getting 2d context of the canvas
+
+                // bar graph.
+                const revenueChart = new Chart(revenueContext, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Revenue', 'Cost of Revenue', 'Difference'],
+                        datasets: [{
+                            label: `Total Revenue for ${jsonData.symbol} in ${jsonData.reportedCurrency}`,
+                            data: [jsonData.revenue, jsonData.costOfRevenue , jsonData.revenue - jsonData.costOfRevenue],
+                            backgroundColor: ['rgba(255, 190, 11)', 'rgba(251, 86, 7)',"rgba(255, 0, 110)" ],
+                            borderColor: ['rgba(0, 0, 0,0.1)', 'rgba(0, 0, 0,0.1)', 'rgba(0, 0, 0,0.1)'],
+
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        legend: {
+                            display: false
+                        },
+                        scales: {
+                            yAxes: [
+                                {
+                                    ticks: {
+                                        beginAtZero: true
+                                    }
+                                }
+                            ]
+                        }
+                    }
+
+                });
+
+                //donut plot
+                // Get the canvas element
+                const canvas = document.getElementById("donut-chart");
+                // Get the context
+                const expensesContext = canvas.getContext("2d");
+                // Define the data
+                const data = {
+                    labels: ["Research & Development", "General & Administrative", "Selling & Marketing"],
+                    datasets: [{
+                        data: [
+                            jsonData.researchAndDevelopmentExpenses,
+                            jsonData.generalAndAdministrativeExpenses,
+                            jsonData.sellingAndMarketingExpenses
+                        ],
+                        backgroundColor: ["#3e95cd", "#8e5ea2", "#3cba9f"],
+                        hoverBackgroundColor: ["#3e95cd", "#8e5ea2", "#3cba9f"]
+                    }]
+                };
+                // Define the options
+                const options = {
+                    title: {
+                        display: true,
+                        text: "Proportion of Different Expense Categories in the Cost and Expenses Total",
+                        fontSize: 18,
+                        fontColor: "#333"
+                    },
+                    legend: {
+                        display: true,
+                        position: "bottom",
+                        labels: {
+                            fontSize: 14,
+                            fontColor: "#333"
+                        }
+                        },
+                    responsive: true,
+                    maintainAspectRatio: false
+                };
+                // Create the chart
+                const myChart = new Chart(expensesContext, {
+                  type: "doughnut",
+                  data: data,
+                  options: options
+                });
+
+                //bubble chart
+                const netIncomeCanvas = document.getElementById('donut-chart_2');
+                const donutChartCtx = netIncomeCanvas.getContext('2d');
+
+                // donut for netIncome
+                const netIncomeData = {
+                    labels: ['Net Income', 'Other'],
+                    datasets: [{
+                        backgroundColor: ['#36a2eb', '#ffcd56'],
+                        data: [jsonData.netIncome, jsonData.revenue - jsonData.netIncome]
+                    }]
+                };
+
+                const newOptions = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '50%',
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    size: 14
+                                },
+                                boxWidth: 15,
+                                padding: 15
+                            }
+                        },
+                        tooltips: {
+                            enabled: true,
+                            callbacks: {
+                                label: function(context) {
+                                    var value = context.parsed;
+                                    if (value !== null) {
+                                        if (Math.round(context.dataset.data[context.dataIndex] / jsonData.revenue * 100) < 0) {
+                                            return context.label + ': ' + value;
+                                        } else {
+                                            return context.label + ': ' + value + ' (' + Math.round(context.dataset.data[context.dataIndex] / jsonData.revenue * 100) + '%)';
+                                        }
+                                    } else {
+                                        return context.label + ': ' + context.dataset.data[context.dataIndex];
+                                    }
+                                }
+                            }
+                        },
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                };
+
+const netIncomeChart = new Chart(donutChartCtx, {
+    type: 'doughnut',
+    data: netIncomeData,
+    options: newOptions
+});
+
+
+        </script>
+    {% else %}
+        <div class="container">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <strong>Oh No!</strong> I don't think we can retrieve the information of this particular stock.
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}
+
+
+
+
