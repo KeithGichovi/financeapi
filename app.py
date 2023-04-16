@@ -3,7 +3,7 @@ import requests
 from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_bootstrap import Bootstrap5
-from forms import CheckData # custom made package
+from forms import CheckData  # custom made package
 
 
 app = Flask(__name__)
